@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-php
+  labels:
+    app: laravel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: laravel
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: laravel
+        tier: backend
+    spec:
+      initContainers:
+      - name: init-laravel-app
+        image: akrameee09/task-management:1.1.2
+        command:
+        - sh
+        - -c
+        - |
+          cp -r /app/. /mnt/app
+          chown -R www-data:www-data /mnt/app
+          chmod -R 775 /mnt/app/storage
+          php artisan migrate
+        volumeMounts:
+        - name: nfs-storage
+          mountPath: /mnt/app
+      containers:
+      - name: laravel-php
+        image: akrameee09/task-management:1.1.2
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - name: nfs-storage
+          mountPath: /var/www/html
+      volumes:
+      - name: nfs-storage
+        persistentVolumeClaim:
+          claimName: pvc-nfs-laravel
+
